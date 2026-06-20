@@ -7,14 +7,13 @@ import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import android.provider.Settings
 import android.view.Gravity
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contracts.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -40,23 +39,7 @@ class MainActivity : AppCompatActivity() {
     // 오버레이의 "불러오기"가 이 화면을 띄웠는지 여부
     private var pickingForOverlay = false
  
-    // 사진 선택 런처 (최신 Photo Picker, 저장소 권한 불필요)
-    private val pickImageLauncher = registerForActivityResult(
-        ActivityResultContracts.PickVisualMedia()
-    ) { uri ->
-        if (uri != null) {
-            val intent = Intent(this, OverlayService::class.java).apply {
-                action = OverlayService.ACTION_IMPORT_IMAGE
-                putExtra(OverlayService.EXTRA_IMPORT_URI, uri.toString())
-            }
-            startService(intent)
-        }
-        if (pickingForOverlay) {
-            pickingForOverlay = false
-            // 사진을 골랐든 취소했든, 오버레이로 돌아가게 화면을 내림
-            moveTaskToBack(true)
-        }
-    }
+    private val PICK_IMAGE_REQUEST_CODE = 2001
  
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -86,9 +69,27 @@ class MainActivity : AppCompatActivity() {
     private fun handlePickIntent(intent: Intent?) {
         if (intent?.action == OverlayService.ACTION_PICK_IMAGE) {
             pickingForOverlay = true
-            pickImageLauncher.launch(
-                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-            )
+            val pickIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+            startActivityForResult(pickIntent, PICK_IMAGE_REQUEST_CODE)
+        }
+    }
+ 
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == PICK_IMAGE_REQUEST_CODE) {
+            val uri: Uri? = data?.data
+            if (uri != null) {
+                val intent = Intent(this, OverlayService::class.java).apply {
+                    action = OverlayService.ACTION_IMPORT_IMAGE
+                    putExtra(OverlayService.EXTRA_IMPORT_URI, uri.toString())
+                }
+                startService(intent)
+            }
+            if (pickingForOverlay) {
+                pickingForOverlay = false
+                // 사진을 골랐든 취소했든, 오버레이로 돌아가게 화면을 내림
+                moveTaskToBack(true)
+            }
         }
     }
  
