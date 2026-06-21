@@ -7,7 +7,7 @@
     android:background="@drawable/control_bar_bg"
     android:paddingHorizontal="8dp"
     android:paddingVertical="6dp">
- 
+
     <!-- 펼쳐지는 팔레트 영역 (색상 + 굵기 슬라이더). 평소엔 숨김 -->
     <LinearLayout
         android:id="@+id/palettePanel"
@@ -16,7 +16,7 @@
         android:orientation="vertical"
         android:visibility="gone"
         android:paddingBottom="6dp">
- 
+
         <!-- 색상 스와치 줄 -->
         <LinearLayout
             android:id="@+id/swatchRow"
@@ -26,20 +26,20 @@
             android:gravity="center_vertical"
             android:paddingHorizontal="2dp"
             android:paddingBottom="6dp" />
- 
+
         <!-- 굵기 슬라이더 줄 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical">
- 
+
             <ImageView
                 android:layout_width="18dp"
                 android:layout_height="18dp"
                 android:src="@drawable/ic_minus"
                 android:scaleType="center" />
- 
+
             <SeekBar
                 android:id="@+id/widthSeek"
                 android:layout_width="0dp"
@@ -50,28 +50,62 @@
                 android:progress="6"
                 android:progressTint="#2B6E63"
                 android:thumbTint="#F6F1E7" />
- 
+
             <ImageView
                 android:layout_width="18dp"
                 android:layout_height="18dp"
                 android:src="@drawable/ic_plus"
                 android:scaleType="center" />
- 
+
             <View
                 android:id="@+id/sizePreview"
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:layout_marginStart="6dp" />
         </LinearLayout>
+
+        <!-- 테이퍼(선 끝 가늘기) 슬라이더 줄 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="6dp">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_taper"
+                android:scaleType="center" />
+
+            <SeekBar
+                android:id="@+id/taperSeek"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="100"
+                android:progress="0"
+                android:progressTint="#D98E3A"
+                android:thumbTint="#F6F1E7" />
+
+            <TextView
+                android:id="@+id/taperValue"
+                android:layout_width="44dp"
+                android:layout_height="wrap_content"
+                android:text="0%"
+                android:textColor="#F6F1E7"
+                android:textSize="12sp"
+                android:gravity="end" />
+        </LinearLayout>
     </LinearLayout>
- 
+
     <!-- 메인 도구 줄 -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical">
- 
+
         <ImageView
             android:id="@+id/grip"
             android:layout_width="20dp"
@@ -79,7 +113,7 @@
             android:src="@drawable/ic_grip"
             android:scaleType="center"
             android:contentDescription="이동 손잡이" />
- 
+
         <!-- 색상/굵기 팔레트 펼치기 -->
         <ImageButton
             android:id="@+id/btnPalette"
@@ -89,13 +123,13 @@
             android:background="@drawable/control_btn_bg"
             android:scaleType="center"
             android:contentDescription="색상·굵기" />
- 
+
         <View
             android:layout_width="1dp"
             android:layout_height="22dp"
             android:background="#33F6F1E7"
             android:layout_marginHorizontal="3dp" />
- 
+
         <!-- 필기 모드 -->
         <ImageButton
             android:id="@+id/btnModeDraw"
@@ -105,7 +139,7 @@
             android:background="@drawable/mode_btn_active"
             android:scaleType="center"
             android:contentDescription="필기 모드" />
- 
+
         <!-- 스크롤 모드 -->
         <ImageButton
             android:id="@+id/btnModeScroll"
@@ -116,23 +150,13 @@
             android:scaleType="center"
             android:contentDescription="스크롤 모드"
             android:layout_marginStart="2dp" />
- 
+
         <View
             android:layout_width="1dp"
             android:layout_height="22dp"
             android:background="#33F6F1E7"
             android:layout_marginHorizontal="3dp" />
- 
-        <!-- 테이퍼(날카로운 선) 토글 -->
-        <ImageButton
-            android:id="@+id/btnTaper"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:src="@drawable/ic_taper"
-            android:background="@drawable/mode_btn_inactive"
-            android:scaleType="center"
-            android:contentDescription="날카로운 선" />
- 
+
         <!-- 지우개 토글 -->
         <ImageButton
             android:id="@+id/btnEraser"
@@ -141,15 +165,14 @@
             android:src="@drawable/ic_eraser"
             android:background="@drawable/mode_btn_inactive"
             android:scaleType="center"
-            android:contentDescription="지우개"
-            android:layout_marginStart="2dp" />
- 
+            android:contentDescription="지우개" />
+
         <View
             android:layout_width="1dp"
             android:layout_height="22dp"
             android:background="#33F6F1E7"
             android:layout_marginHorizontal="3dp" />
- 
+
         <ImageButton
             android:id="@+id/btnUndo"
             android:layout_width="40dp"
@@ -158,7 +181,7 @@
             android:background="@drawable/control_btn_bg"
             android:scaleType="center"
             android:contentDescription="되돌리기" />
- 
+
         <ImageButton
             android:id="@+id/btnRedo"
             android:layout_width="40dp"
@@ -167,7 +190,7 @@
             android:background="@drawable/control_btn_bg"
             android:scaleType="center"
             android:contentDescription="다시 실행" />
- 
+
         <ImageButton
             android:id="@+id/btnClear"
             android:layout_width="40dp"
@@ -176,13 +199,13 @@
             android:background="@drawable/control_btn_bg"
             android:scaleType="center"
             android:contentDescription="전체 지우기" />
- 
+
         <View
             android:layout_width="1dp"
             android:layout_height="22dp"
             android:background="#33F6F1E7"
             android:layout_marginHorizontal="3dp" />
- 
+
         <!-- PNG 불러오기 -->
         <ImageButton
             android:id="@+id/btnImport"
@@ -192,7 +215,7 @@
             android:background="@drawable/control_btn_bg"
             android:scaleType="center"
             android:contentDescription="그림 불러오기" />
- 
+
         <!-- 저장 -->
         <ImageButton
             android:id="@+id/btnSave"
@@ -202,7 +225,7 @@
             android:background="@drawable/control_btn_bg"
             android:scaleType="center"
             android:contentDescription="저장" />
- 
+
         <!-- 닫기 -->
         <ImageButton
             android:id="@+id/btnClose"
@@ -212,6 +235,6 @@
             android:background="@drawable/control_btn_bg"
             android:scaleType="center"
             android:contentDescription="오버레이 닫기" />
- 
+
     </LinearLayout>
 </LinearLayout>

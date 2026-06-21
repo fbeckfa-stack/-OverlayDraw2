@@ -4,13 +4,13 @@
     android:layout_height="match_parent"
     android:background="@color/bg_dark"
     android:fillViewport="true">
- 
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="28dp">
- 
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -20,7 +20,7 @@
             android:textStyle="bold"
             android:fontFamily="serif"
             android:layout_marginTop="16dp" />
- 
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -29,7 +29,7 @@
             android:textSize="14sp"
             android:layout_marginTop="8dp"
             android:lineSpacingExtra="4dp" />
- 
+
         <!-- 권한 상태 -->
         <TextView
             android:id="@+id/permissionStatus"
@@ -40,7 +40,7 @@
             android:textSize="14sp"
             android:textStyle="bold"
             android:layout_marginTop="28dp" />
- 
+
         <Button
             android:id="@+id/btnGrantPermission"
             android:layout_width="match_parent"
@@ -49,7 +49,7 @@
             android:text="권한 설정으로 이동"
             android:textColor="@color/bg_dark"
             android:backgroundTint="@color/amber" />
- 
+
         <!-- 배경 투명도 -->
         <TextView
             android:layout_width="wrap_content"
@@ -59,7 +59,7 @@
             android:textSize="14sp"
             android:textStyle="bold"
             android:layout_marginTop="30dp" />
- 
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -67,14 +67,14 @@
             android:textColor="#99F6F1E7"
             android:textSize="12sp"
             android:layout_marginTop="4dp" />
- 
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:layout_marginTop="8dp">
- 
+
             <SeekBar
                 android:id="@+id/seekBackgroundOpacity"
                 android:layout_width="0dp"
@@ -84,7 +84,7 @@
                 android:progress="100"
                 android:progressTint="@color/line_green"
                 android:thumbTint="@color/paper" />
- 
+
             <TextView
                 android:id="@+id/txtOpacityValue"
                 android:layout_width="48dp"
@@ -94,7 +94,7 @@
                 android:textSize="14sp"
                 android:gravity="end" />
         </LinearLayout>
- 
+
         <!-- 펜 색상 -->
         <TextView
             android:layout_width="wrap_content"
@@ -104,14 +104,14 @@
             android:textSize="14sp"
             android:textStyle="bold"
             android:layout_marginTop="26dp" />
- 
+
         <LinearLayout
             android:id="@+id/colorRow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:layout_marginTop="10dp" />
- 
+
         <!-- 펜 굵기 -->
         <TextView
             android:layout_width="wrap_content"
@@ -121,7 +121,7 @@
             android:textSize="14sp"
             android:textStyle="bold"
             android:layout_marginTop="26dp" />
- 
+
         <SeekBar
             android:id="@+id/seekStrokeWidth"
             android:layout_width="match_parent"
@@ -131,7 +131,7 @@
             android:progressTint="@color/coral"
             android:thumbTint="@color/paper"
             android:layout_marginTop="6dp" />
- 
+
         <!-- 시작/중지 -->
         <Button
             android:id="@+id/btnToggleOverlay"
@@ -142,7 +142,7 @@
             android:textColor="@color/paper"
             android:textStyle="bold"
             android:backgroundTint="@color/line_green" />
- 
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -151,6 +151,6 @@
             android:textSize="12sp"
             android:layout_marginTop="14dp"
             android:layout_marginBottom="20dp" />
- 
+
     </LinearLayout>
 </ScrollView>

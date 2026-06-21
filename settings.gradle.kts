@@ -12,6 +12,6 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
- 
+
 rootProject.name = "OverlayDraw"
 include(":app")

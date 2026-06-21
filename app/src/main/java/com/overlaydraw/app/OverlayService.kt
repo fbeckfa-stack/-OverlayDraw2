@@ -1,5 +1,5 @@
 package com.overlaydraw.app
- 
+
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -32,59 +32,58 @@ import android.widget.Toast
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
- 
+
 /**
  * 화면 위에 떠 있는 투명 캔버스(DrawingOverlayView)와 플로팅 컨트롤 바를 관리하는 서비스.
  */
 class OverlayService : Service() {
- 
+
     private lateinit var windowManager: WindowManager
     private lateinit var drawingView: DrawingOverlayView
     private lateinit var dimView: View
     private lateinit var controlBar: LinearLayout
- 
+
     private var drawingParams: WindowManager.LayoutParams? = null
     private var controlParams: WindowManager.LayoutParams? = null
- 
+
     // 토글 가능한 버튼들(선택 상태 배경 갱신용)
     private var btnModeDraw: ImageButton? = null
     private var btnModeScroll: ImageButton? = null
-    private var btnTaper: ImageButton? = null
     private var btnEraser: ImageButton? = null
     private var palettePanel: View? = null
     private var sizePreview: View? = null
     private var swatchRow: LinearLayout? = null
     private val swatchViews = ArrayList<View>()
- 
+
     // 저장 선택 다이얼로그(오버레이) 보관
     private var saveDialog: View? = null
- 
+
     private var isDrawMode = true
     private var currentPenWidth = 6f
     private val minPenWidth = 1f
     private val maxPenWidth = 40f
     private var currentPenColor = Color.parseColor("#2B6E63")
- 
+
     private val palette = listOf(
         "#2B6E63", "#C2543F", "#D98E3A", "#1C2B2A", "#F6F1E7", "#3A5FC2", "#8E44AD", "#E84393"
     )
- 
+
     companion object {
         const val CHANNEL_ID = "overlay_draw_channel"
         const val NOTIF_ID = 1
- 
+
         const val EXTRA_BG_OPACITY = "extra_bg_opacity"
         const val EXTRA_PEN_COLOR = "extra_pen_color"
         const val EXTRA_PEN_WIDTH = "extra_pen_width"
         const val EXTRA_IMPORT_URI = "extra_import_uri"
- 
+
         const val ACTION_STOP = "action_stop"
         const val ACTION_IMPORT_IMAGE = "action_import_image"
- 
+
         // OverlayService -> MainActivity (사진 선택 요청)
         const val ACTION_PICK_IMAGE = "com.overlaydraw.app.PICK_IMAGE"
     }
- 
+
     override fun onCreate() {
         super.onCreate()
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -93,7 +92,7 @@ class OverlayService : Service() {
         buildDrawingLayer()
         buildControlBar()
     }
- 
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         intent?.let {
             when (it.action) {
@@ -122,9 +121,9 @@ class OverlayService : Service() {
         }
         return START_STICKY
     }
- 
+
     // ---------- 알림 ----------
- 
+
     private fun startForegroundNotification() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
@@ -138,10 +137,11 @@ class OverlayService : Service() {
             this, 0, stopIntent, PendingIntent.FLAG_IMMUTABLE
         )
         val notification = Notification.Builder(this, CHANNEL_ID)
-            .setContentTitle("오버레이 드로우가 화면 위에 떠 있어요")
-            .setContentText("탭하면 끄기")
+            .setContentTitle("오버레이 드로우 실행 중")
+            .setContentText("여기를 누르면 그리기를 종료합니다")
             .setSmallIcon(R.drawable.ic_pen)
             .setContentIntent(stopPending)
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "종료", stopPending)
             .setOngoing(true)
             .build()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -150,15 +150,15 @@ class OverlayService : Service() {
             startForeground(NOTIF_ID, notification)
         }
     }
- 
+
     // ---------- 배경 막(투명도) ----------
- 
+
     private fun overlayType(): Int =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         else
             @Suppress("DEPRECATION") WindowManager.LayoutParams.TYPE_PHONE
- 
+
     private fun buildDimLayer() {
         dimView = View(this).apply {
             setBackgroundColor(Color.BLACK)
@@ -175,13 +175,13 @@ class OverlayService : Service() {
         params.gravity = Gravity.TOP or Gravity.START
         windowManager.addView(dimView, params)
     }
- 
+
     private fun applyBackgroundOpacity(opacityPercent: Int) {
         dimView.alpha = ((100 - opacityPercent) / 100f).coerceIn(0f, 1f)
     }
- 
+
     // ---------- 드로잉 캔버스 ----------
- 
+
     private fun buildDrawingLayer() {
         drawingView = DrawingOverlayView(this)
         drawingView.penColor = currentPenColor
@@ -196,9 +196,11 @@ class OverlayService : Service() {
         params.gravity = Gravity.TOP or Gravity.START
         drawingParams = params
         windowManager.addView(drawingView, params)
-        setDrawMode(true)
+        // 초기 상태는 필기 모드. (컨트롤 바가 아직 없으므로 재추가 로직은 쓰지 않음)
+        isDrawMode = true
+        drawingView.drawingEnabled = true
     }
- 
+
     /** 필기 모드 ON: 캔버스가 터치를 받음 / OFF(스크롤): 터치를 아래 앱으로 통과 */
     private fun setDrawMode(enabled: Boolean) {
         isDrawMode = enabled
@@ -207,18 +209,40 @@ class OverlayService : Service() {
         params.flags = if (enabled) {
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
         } else {
+            // 스크롤 모드: 캔버스가 터치를 가로채지 않고 아래 앱으로 모두 통과시킨다
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
         }
-        windowManager.updateViewLayout(drawingView, params)
+        // 일부 기기는 updateViewLayout으로 FLAG_NOT_TOUCHABLE 변경을 즉시 반영하지 않으므로
+        // 뷰를 제거했다가 다시 추가해 플래그를 확실히 적용한다.
+        runCatching {
+            windowManager.removeViewImmediate(drawingView)
+            windowManager.addView(drawingView, params)
+        }.onFailure {
+            // 재추가에 실패하면 최소한 레이아웃 갱신이라도 시도
+            runCatching { windowManager.updateViewLayout(drawingView, params) }
+        }
+        // 캔버스를 다시 추가하면 컨트롤 바보다 아래로 내려갈 수 있으니,
+        // 컨트롤 바를 다시 맨 위로 올린다.
+        bringControlBarToFront()
     }
- 
+
+    /** 컨트롤 바를 다른 오버레이보다 위에 다시 올린다(항상 누를 수 있도록). */
+    private fun bringControlBarToFront() {
+        val cp = controlParams ?: return
+        if (!::controlBar.isInitialized) return
+        runCatching {
+            windowManager.removeViewImmediate(controlBar)
+            windowManager.addView(controlBar, cp)
+        }
+    }
+
     // ---------- 컨트롤 바 ----------
- 
+
     private fun buildControlBar() {
         val inflater = LayoutInflater.from(this)
         controlBar = inflater.inflate(R.layout.overlay_control_bar, null) as LinearLayout
- 
+
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -230,7 +254,7 @@ class OverlayService : Service() {
         params.x = 24
         params.y = 120
         controlParams = params
- 
+
         // grip 드래그로 이동
         val grip = controlBar.findViewById<ImageView>(R.id.grip)
         var startX = 0; var startY = 0; var touchX = 0f; var touchY = 0f
@@ -248,15 +272,14 @@ class OverlayService : Service() {
                 else -> false
             }
         }
- 
+
         palettePanel = controlBar.findViewById(R.id.palettePanel)
         swatchRow = controlBar.findViewById(R.id.swatchRow)
         sizePreview = controlBar.findViewById(R.id.sizePreview)
         btnModeDraw = controlBar.findViewById(R.id.btnModeDraw)
         btnModeScroll = controlBar.findViewById(R.id.btnModeScroll)
-        btnTaper = controlBar.findViewById(R.id.btnTaper)
         btnEraser = controlBar.findViewById(R.id.btnEraser)
- 
+
         val btnPalette = controlBar.findViewById<ImageButton>(R.id.btnPalette)
         val btnUndo = controlBar.findViewById<ImageButton>(R.id.btnUndo)
         val btnRedo = controlBar.findViewById<ImageButton>(R.id.btnRedo)
@@ -265,10 +288,12 @@ class OverlayService : Service() {
         val btnSave = controlBar.findViewById<ImageButton>(R.id.btnSave)
         val btnClose = controlBar.findViewById<ImageButton>(R.id.btnClose)
         val widthSeek = controlBar.findViewById<SeekBar>(R.id.widthSeek)
- 
+        val taperSeek = controlBar.findViewById<SeekBar>(R.id.taperSeek)
+        val taperValue = controlBar.findViewById<TextView>(R.id.taperValue)
+
         // 색상 스와치 생성
         buildSwatches()
- 
+
         // 굵기 슬라이더 (그리는 중에도 조절 가능)
         widthSeek.progress = currentPenWidth.toInt().coerceIn(1, 40)
         widthSeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -280,37 +305,45 @@ class OverlayService : Service() {
             override fun onStartTrackingTouch(sb: SeekBar?) {}
             override fun onStopTrackingTouch(sb: SeekBar?) {}
         })
- 
+
+        // 테이퍼(선 끝 가늘기) 슬라이더 — 0~100%
+        taperSeek.progress = (drawingView.taperAmount * 100).toInt()
+        taperValue.text = "${(drawingView.taperAmount * 100).toInt()}%"
+        taperSeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, value: Int, fromUser: Boolean) {
+                drawingView.taperAmount = value / 100f
+                taperValue.text = "$value%"
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {}
+        })
+
         // 팔레트 펼치기/접기
         btnPalette.setOnClickListener {
             val p = palettePanel ?: return@setOnClickListener
             p.visibility = if (p.visibility == View.GONE) View.VISIBLE else View.GONE
         }
- 
+
         btnModeDraw?.setOnClickListener { setDrawMode(true); refreshToggleButtons() }
         btnModeScroll?.setOnClickListener { setDrawMode(false); refreshToggleButtons() }
- 
-        btnTaper?.setOnClickListener {
-            drawingView.taperEnabled = !drawingView.taperEnabled
-            refreshToggleButtons()
-        }
+
         btnEraser?.setOnClickListener {
             drawingView.eraserMode = !drawingView.eraserMode
             refreshToggleButtons()
         }
- 
+
         btnUndo.setOnClickListener { drawingView.undo() }
         btnRedo.setOnClickListener { drawingView.redo() }
         btnClear.setOnClickListener { drawingView.clearAll() }
         btnImport.setOnClickListener { requestImagePick() }
         btnSave.setOnClickListener { showSaveDialog() }
         btnClose.setOnClickListener { stopSelf() }
- 
+
         refreshToggleButtons()
         updateSizePreview()
         windowManager.addView(controlBar, params)
     }
- 
+
     private fun buildSwatches() {
         val row = swatchRow ?: return
         row.removeAllViews()
@@ -339,7 +372,7 @@ class OverlayService : Service() {
             row.addView(v)
         }
     }
- 
+
     private fun swatchDrawable(color: Int, selected: Boolean): GradientDrawable {
         val density = resources.displayMetrics.density
         return GradientDrawable().apply {
@@ -351,7 +384,7 @@ class OverlayService : Service() {
             )
         }
     }
- 
+
     private fun refreshSwatchSelection() {
         palette.forEachIndexed { i, hex ->
             if (i < swatchViews.size) {
@@ -360,7 +393,7 @@ class OverlayService : Service() {
             }
         }
     }
- 
+
     private fun refreshToggleButtons() {
         btnModeDraw?.setBackgroundResource(
             if (isDrawMode) R.drawable.mode_btn_active else R.drawable.mode_btn_inactive
@@ -368,14 +401,11 @@ class OverlayService : Service() {
         btnModeScroll?.setBackgroundResource(
             if (!isDrawMode) R.drawable.mode_btn_active else R.drawable.mode_btn_inactive
         )
-        btnTaper?.setBackgroundResource(
-            if (drawingView.taperEnabled) R.drawable.mode_btn_active else R.drawable.mode_btn_inactive
-        )
         btnEraser?.setBackgroundResource(
             if (drawingView.eraserMode) R.drawable.mode_btn_active else R.drawable.mode_btn_inactive
         )
     }
- 
+
     private fun updateSizePreview() {
         val preview = sizePreview ?: return
         val density = resources.displayMetrics.density
@@ -389,9 +419,9 @@ class OverlayService : Service() {
         val pad = ((container - dotPx) / 2).coerceAtLeast(0)
         preview.setPadding(pad, pad, pad, pad)
     }
- 
+
     // ---------- PNG 불러오기 ----------
- 
+
     /** 오버레이에서는 직접 갤러리를 못 열어, MainActivity를 띄워 사진을 고르게 한다. */
     private fun requestImagePick() {
         val intent = Intent(this, MainActivity::class.java).apply {
@@ -401,7 +431,7 @@ class OverlayService : Service() {
         startActivity(intent)
         Toast.makeText(this, "불러올 그림을 선택하세요", Toast.LENGTH_SHORT).show()
     }
- 
+
     private fun loadBackgroundImage(uri: Uri) {
         try {
             val input = contentResolver.openInputStream(uri)
@@ -425,9 +455,9 @@ class OverlayService : Service() {
             Toast.makeText(this, "불러오기 오류: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
- 
+
     // ---------- 저장 (분리 / 합침 선택) ----------
- 
+
     private fun showSaveDialog() {
         if (!drawingView.hasContent() && !drawingView.hasBackground()) {
             Toast.makeText(this, "저장할 내용이 없어요", Toast.LENGTH_SHORT).show()
@@ -435,7 +465,7 @@ class OverlayService : Service() {
         }
         // 이미 떠 있으면 중복 방지
         dismissSaveDialog()
- 
+
         val dialog = LayoutInflater.from(this).inflate(R.layout.overlay_save_dialog, null)
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -445,17 +475,17 @@ class OverlayService : Service() {
             PixelFormat.TRANSLUCENT
         )
         params.gravity = Gravity.CENTER
- 
+
         val btnMerged = dialog.findViewById<Button>(R.id.btnSaveMerged)
         val btnSeparate = dialog.findViewById<Button>(R.id.btnSaveSeparate)
         val btnCancel = dialog.findViewById<Button>(R.id.btnSaveCancel)
         val info = dialog.findViewById<TextView>(R.id.saveInfo)
- 
+
         // 배경이 없으면 "합침"은 사실상 선만 저장이므로 안내만 조정
         if (!drawingView.hasBackground()) {
             info.text = "불러온 배경이 없어, 그린 선만 저장됩니다."
         }
- 
+
         btnMerged.setOnClickListener {
             val bmp = drawingView.exportMerged()
             savePng(bmp, "merged")
@@ -467,16 +497,16 @@ class OverlayService : Service() {
             dismissSaveDialog()
         }
         btnCancel.setOnClickListener { dismissSaveDialog() }
- 
+
         saveDialog = dialog
         windowManager.addView(dialog, params)
     }
- 
+
     private fun dismissSaveDialog() {
         saveDialog?.let { runCatching { windowManager.removeView(it) } }
         saveDialog = null
     }
- 
+
     private fun savePng(bitmap: Bitmap?, suffix: String) {
         if (bitmap == null) {
             Toast.makeText(this, "저장할 내용이 없어요", Toast.LENGTH_SHORT).show()
@@ -512,7 +542,7 @@ class OverlayService : Service() {
             Toast.makeText(this, "저장 오류: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
- 
+
     override fun onDestroy() {
         super.onDestroy()
         dismissSaveDialog()
@@ -520,6 +550,6 @@ class OverlayService : Service() {
         runCatching { windowManager.removeView(dimView) }
         runCatching { windowManager.removeView(controlBar) }
     }
- 
+
     override fun onBind(intent: Intent?): IBinder? = null
 }
