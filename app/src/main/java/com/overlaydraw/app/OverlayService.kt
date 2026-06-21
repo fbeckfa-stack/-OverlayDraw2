@@ -55,10 +55,15 @@ class OverlayService : Service() {
     private var btnModeDraw: ImageButton? = null
     private var btnModeScroll: ImageButton? = null
     private var btnEraser: ImageButton? = null
+    private var btnArea: ImageButton? = null
     private var palettePanel: View? = null
     private var sizePreview: View? = null
     private var swatchRow: LinearLayout? = null
     private val swatchViews = ArrayList<View>()
+
+    // 항상 떠 있는 독립 종료(X) 버튼
+    private var closeButtonView: View? = null
+    private var closeButtonParams: WindowManager.LayoutParams? = null
 
     // 저장 선택 다이얼로그(오버레이) 보관
     private var saveDialog: View? = null
@@ -96,6 +101,7 @@ class OverlayService : Service() {
         buildDimLayer()
         buildDrawingLayer()
         buildControlBar()
+        buildCloseButton()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -325,6 +331,7 @@ class OverlayService : Service() {
         btnModeDraw = controlBar.findViewById(R.id.btnModeDraw)
         btnModeScroll = controlBar.findViewById(R.id.btnModeScroll)
         btnEraser = controlBar.findViewById(R.id.btnEraser)
+        btnArea = controlBar.findViewById(R.id.btnArea)
 
         val btnPalette = controlBar.findViewById<ImageButton>(R.id.btnPalette)
         val btnUndo = controlBar.findViewById<ImageButton>(R.id.btnUndo)
@@ -375,6 +382,17 @@ class OverlayService : Service() {
 
         btnEraser?.setOnClickListener {
             drawingView.eraserMode = !drawingView.eraserMode
+            refreshToggleButtons()
+        }
+
+        btnArea?.setOnClickListener {
+            drawingView.areaEditMode = !drawingView.areaEditMode
+            if (drawingView.areaEditMode) {
+                Toast.makeText(this, "사각형을 드래그해 그리기 영역을 만드세요. 모서리로 크기 조절, 안쪽으로 이동.", Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(this, "영역 설정 완료. 이 영역 안에서만 그려집니다.", Toast.LENGTH_SHORT).show()
+            }
+            drawingView.invalidate()
             refreshToggleButtons()
         }
 
@@ -449,6 +467,9 @@ class OverlayService : Service() {
         )
         btnEraser?.setBackgroundResource(
             if (drawingView.eraserMode) R.drawable.mode_btn_active else R.drawable.mode_btn_inactive
+        )
+        btnArea?.setBackgroundResource(
+            if (drawingView.areaEditMode) R.drawable.mode_btn_active else R.drawable.mode_btn_inactive
         )
     }
 
@@ -595,9 +616,60 @@ class OverlayService : Service() {
         runCatching { windowManager.removeViewImmediate(controlBar) }
         runCatching { windowManager.removeViewImmediate(drawingView) }
         displayView?.let { runCatching { windowManager.removeViewImmediate(it) } }
+        closeButtonView?.let { runCatching { windowManager.removeViewImmediate(it) } }
         runCatching { windowManager.removeViewImmediate(dimView) }
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
+    }
+
+    /** 화면에 항상 떠 있는 독립 종료(X) 버튼. 드래그로 위치 이동, 탭하면 종료. */
+    private fun buildCloseButton() {
+        val view = LayoutInflater.from(this).inflate(R.layout.overlay_close_button, null)
+        val btn = view.findViewById<ImageButton>(R.id.floatingClose)
+
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            overlayType(),
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            PixelFormat.TRANSLUCENT
+        )
+        params.gravity = Gravity.TOP or Gravity.START
+        // 화면 오른쪽 위쯤에 기본 배치
+        params.x = resources.displayMetrics.widthPixels - (70 * resources.displayMetrics.density).toInt()
+        params.y = (60 * resources.displayMetrics.density).toInt()
+        closeButtonParams = params
+
+        // 드래그로 이동하되, 거의 안 움직이면 클릭(종료)으로 처리
+        var startX = 0; var startY = 0; var touchX = 0f; var touchY = 0f
+        var moved = false
+        btn.setOnTouchListener { _, event ->
+            when (event.action) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    startX = params.x; startY = params.y
+                    touchX = event.rawX; touchY = event.rawY
+                    moved = false
+                    true
+                }
+                android.view.MotionEvent.ACTION_MOVE -> {
+                    val dx = (event.rawX - touchX)
+                    val dy = (event.rawY - touchY)
+                    if (kotlin.math.abs(dx) > 12 || kotlin.math.abs(dy) > 12) moved = true
+                    params.x = startX + dx.toInt()
+                    params.y = startY + dy.toInt()
+                    runCatching { windowManager.updateViewLayout(view, params) }
+                    true
+                }
+                android.view.MotionEvent.ACTION_UP -> {
+                    if (!moved) shutdownEverything()
+                    true
+                }
+                else -> false
+            }
+        }
+
+        closeButtonView = view
+        windowManager.addView(view, params)
     }
 
     override fun onDestroy() {
@@ -605,6 +677,7 @@ class OverlayService : Service() {
         dismissSaveDialog()
         if (drawingAttached) runCatching { windowManager.removeView(drawingView) }
         displayView?.let { runCatching { windowManager.removeView(it) } }
+        closeButtonView?.let { runCatching { windowManager.removeView(it) } }
         runCatching { windowManager.removeView(dimView) }
         runCatching { windowManager.removeView(controlBar) }
     }

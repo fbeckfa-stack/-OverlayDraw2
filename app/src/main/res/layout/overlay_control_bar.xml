@@ -157,6 +157,16 @@
             android:background="#33F6F1E7"
             android:layout_marginHorizontal="3dp" />
 
+        <!-- 그리기 영역 설정 토글 -->
+        <ImageButton
+            android:id="@+id/btnArea"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_area"
+            android:background="@drawable/mode_btn_inactive"
+            android:scaleType="center"
+            android:contentDescription="그리기 영역 설정" />
+
         <!-- 지우개 토글 -->
         <ImageButton
             android:id="@+id/btnEraser"
@@ -165,7 +175,8 @@
             android:src="@drawable/ic_eraser"
             android:background="@drawable/mode_btn_inactive"
             android:scaleType="center"
-            android:contentDescription="지우개" />
+            android:contentDescription="지우개"
+            android:layout_marginStart="2dp" />
 
         <View
             android:layout_width="1dp"

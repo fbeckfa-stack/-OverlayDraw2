@@ -8,6 +8,7 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
+import android.graphics.RectF
 import android.view.MotionEvent
 import android.view.View
 import kotlin.math.hypot
@@ -52,6 +53,41 @@ class DrawingOverlayView(context: Context) : View(context) {
     /** 불러온 배경 그림(PNG). 화면 좌상단 기준으로 그린다. */
     var backgroundBitmap: Bitmap? = null
 
+    /** 그리기 영역(이 사각형 안에서만 그려짐). null이면 화면 전체에 그릴 수 있다. */
+    var clipRect: RectF? = null
+
+    /** 영역 편집 모드. true면 그리는 대신 사각형 틀을 드래그로 만들고 조절한다. */
+    var areaEditMode: Boolean = false
+
+    /** 영역이 바뀔 때 알리는 콜백(없어도 됨). */
+    var onAreaChanged: (() -> Unit)? = null
+
+    // 영역 편집용 드래그 상태
+    private enum class DragMode { NONE, CREATE, MOVE, RESIZE_TL, RESIZE_TR, RESIZE_BL, RESIZE_BR }
+    private var dragMode = DragMode.NONE
+    private var dragStartX = 0f
+    private var dragStartY = 0f
+    private var rectStart: RectF? = null
+    private val handleTouchSize = 60f  // 모서리 핸들 터치 인식 반경(px)
+
+    private val areaBorderPaint = Paint().apply {
+        isAntiAlias = true
+        style = Paint.Style.STROKE
+        strokeWidth = 4f
+        color = Color.parseColor("#D98E3A")
+        pathEffect = android.graphics.DashPathEffect(floatArrayOf(18f, 12f), 0f)
+    }
+    private val areaHandlePaint = Paint().apply {
+        isAntiAlias = true
+        style = Paint.Style.FILL
+        color = Color.parseColor("#D98E3A")
+    }
+    private val areaDimPaint = Paint().apply {
+        isAntiAlias = true
+        style = Paint.Style.FILL
+        color = Color.parseColor("#552B6E63")
+    }
+
     private val linePaint = Paint().apply {
         isAntiAlias = true
         style = Paint.Style.STROKE
@@ -68,17 +104,35 @@ class DrawingOverlayView(context: Context) : View(context) {
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (!drawingEnabled) return false
 
+        // 영역 편집 모드: 사각형 틀을 만들고 조절한다.
+        if (areaEditMode) {
+            return handleAreaEdit(event)
+        }
+
+        val x = event.x
+        val y = event.y
+
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                // 그리기 영역이 설정돼 있으면, 그 밖에서 시작한 터치는 무시
+                val r = clipRect
+                if (r != null && !r.contains(x, y)) return true
                 val s = Stroke(penColor, penWidth, taperAmount, eraserMode)
-                s.xs.add(event.x); s.ys.add(event.y)
+                s.xs.add(x); s.ys.add(y)
                 active = s
                 invalidate()
                 return true
             }
             MotionEvent.ACTION_MOVE -> {
                 val s = active ?: return true
-                s.xs.add(event.x); s.ys.add(event.y)
+                // 영역이 있으면 점을 영역 안으로 가둔다(clamp)
+                val r = clipRect
+                if (r != null) {
+                    s.xs.add(x.coerceIn(r.left, r.right))
+                    s.ys.add(y.coerceIn(r.top, r.bottom))
+                } else {
+                    s.xs.add(x); s.ys.add(y)
+                }
                 invalidate()
                 return true
             }
@@ -93,6 +147,89 @@ class DrawingOverlayView(context: Context) : View(context) {
             }
         }
         return false
+    }
+
+    /** 영역 편집 모드에서 사각형 틀을 만들고 이동/리사이즈한다. */
+    private fun handleAreaEdit(event: MotionEvent): Boolean {
+        val x = event.x
+        val y = event.y
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                dragStartX = x; dragStartY = y
+                val r = clipRect
+                if (r == null) {
+                    // 영역이 아직 없으면 새로 그리기 시작
+                    dragMode = DragMode.CREATE
+                    clipRect = RectF(x, y, x, y)
+                } else {
+                    rectStart = RectF(r)
+                    dragMode = when {
+                        near(x, y, r.left, r.top) -> DragMode.RESIZE_TL
+                        near(x, y, r.right, r.top) -> DragMode.RESIZE_TR
+                        near(x, y, r.left, r.bottom) -> DragMode.RESIZE_BL
+                        near(x, y, r.right, r.bottom) -> DragMode.RESIZE_BR
+                        r.contains(x, y) -> DragMode.MOVE
+                        else -> DragMode.CREATE.also { clipRect = RectF(x, y, x, y) }
+                    }
+                }
+                invalidate()
+                return true
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val r = clipRect ?: return true
+                when (dragMode) {
+                    DragMode.CREATE -> {
+                        r.set(
+                            minOf(dragStartX, x), minOf(dragStartY, y),
+                            maxOf(dragStartX, x), maxOf(dragStartY, y)
+                        )
+                    }
+                    DragMode.MOVE -> {
+                        val rs = rectStart ?: return true
+                        val dx = x - dragStartX
+                        val dy = y - dragStartY
+                        r.set(rs.left + dx, rs.top + dy, rs.right + dx, rs.bottom + dy)
+                    }
+                    DragMode.RESIZE_TL -> { r.left = x; r.top = y }
+                    DragMode.RESIZE_TR -> { r.right = x; r.top = y }
+                    DragMode.RESIZE_BL -> { r.left = x; r.bottom = y }
+                    DragMode.RESIZE_BR -> { r.right = x; r.bottom = y }
+                    else -> {}
+                }
+                invalidate()
+                return true
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                val r = clipRect
+                if (r != null) {
+                    // 좌표 정규화(왼<오, 위<아래) 및 너무 작은 영역 방지
+                    val nl = minOf(r.left, r.right)
+                    val nt = minOf(r.top, r.bottom)
+                    val nr = maxOf(r.left, r.right)
+                    val nb = maxOf(r.top, r.bottom)
+                    r.set(nl, nt, nr, nb)
+                    if (r.width() < 40f || r.height() < 40f) {
+                        // 너무 작으면 영역 해제(전체 그리기로)
+                        clipRect = null
+                    }
+                }
+                dragMode = DragMode.NONE
+                rectStart = null
+                onAreaChanged?.invoke()
+                invalidate()
+                return true
+            }
+        }
+        return true
+    }
+
+    private fun near(x: Float, y: Float, px: Float, py: Float): Boolean =
+        hypot(x - px, y - py) <= handleTouchSize
+
+    /** 그리기 영역을 해제(전체 화면에 그리기). */
+    fun clearArea() {
+        clipRect = null
+        invalidate()
     }
 
     private var strokeLayer: Bitmap? = null
@@ -120,9 +257,26 @@ class DrawingOverlayView(context: Context) : View(context) {
             active?.let { drawStroke(lc, it) }
             canvas.drawBitmap(layer, 0f, 0f, null)
         } else {
-            // 레이어가 아직 없으면(초기) 직접 그린다
             for (s in strokes) drawStroke(canvas, s)
             active?.let { drawStroke(canvas, it) }
+        }
+
+        // 3) 그리기 영역 틀 표시 (영역 편집 모드일 때만 보임)
+        val r = clipRect
+        if (areaEditMode && r != null) {
+            // 영역 바깥을 살짝 어둡게 (영역을 강조)
+            canvas.drawRect(0f, 0f, width.toFloat(), r.top, areaDimPaint)
+            canvas.drawRect(0f, r.bottom, width.toFloat(), height.toFloat(), areaDimPaint)
+            canvas.drawRect(0f, r.top, r.left, r.bottom, areaDimPaint)
+            canvas.drawRect(r.right, r.top, width.toFloat(), r.bottom, areaDimPaint)
+            // 점선 테두리
+            canvas.drawRect(r, areaBorderPaint)
+            // 네 모서리 핸들(원)
+            val hr = 16f
+            canvas.drawCircle(r.left, r.top, hr, areaHandlePaint)
+            canvas.drawCircle(r.right, r.top, hr, areaHandlePaint)
+            canvas.drawCircle(r.left, r.bottom, hr, areaHandlePaint)
+            canvas.drawCircle(r.right, r.bottom, hr, areaHandlePaint)
         }
     }
 
