@@ -30,7 +30,6 @@
             android:layout_marginTop="8dp"
             android:lineSpacingExtra="4dp" />
 
-        <!-- 권한 상태 -->
         <TextView
             android:id="@+id/permissionStatus"
             android:layout_width="match_parent"
@@ -50,7 +49,6 @@
             android:textColor="@color/bg_dark"
             android:backgroundTint="@color/amber" />
 
-        <!-- 배경 투명도 -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -95,7 +93,6 @@
                 android:gravity="end" />
         </LinearLayout>
 
-        <!-- 펜 색상 -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -112,7 +109,6 @@
             android:orientation="horizontal"
             android:layout_marginTop="10dp" />
 
-        <!-- 펜 굵기 -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -132,7 +128,6 @@
             android:thumbTint="@color/paper"
             android:layout_marginTop="6dp" />
 
-        <!-- 시작/중지 -->
         <Button
             android:id="@+id/btnToggleOverlay"
             android:layout_width="match_parent"

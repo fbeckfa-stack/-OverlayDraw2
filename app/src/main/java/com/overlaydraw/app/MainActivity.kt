@@ -94,7 +94,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** Android 9(API 28) 이하에서만 PNG 저장에 필요한 저장소 권한을 요청한다.
-     *  Android 10 이상은 MediaStore + scoped storage라 별도 권한이 필요 없다. */
+     * Android 10 이상은 MediaStore + scoped storage라 별도 권한이 필요 없다. */
     private fun requestLegacyStoragePermissionIfNeeded() {
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) return
         val granted = ContextCompat.checkSelfPermission(

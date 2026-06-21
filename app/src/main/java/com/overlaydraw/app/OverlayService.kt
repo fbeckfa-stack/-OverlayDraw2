@@ -188,7 +188,8 @@ class OverlayService : Service() {
     }
 
     private fun applyBackgroundOpacity(opacityPercent: Int) {
-        dimView.alpha = ((100 - opacityPercent) / 100f).coerceIn(0f, 1f)
+        // [수정된 부분 1] 최신 버전 안드로이드의 터치 차단 방지를 위해 최대 투명도를 0.8로 제한합니다.
+        dimView.alpha = ((100 - opacityPercent) / 100f).coerceIn(0f, 0.8f)
     }
 
     // ---------- 드로잉 캔버스 ----------
@@ -215,7 +216,7 @@ class OverlayService : Service() {
     /**
      * 필기 모드: 그리기 캔버스를 화면에 올려 터치로 그릴 수 있게 한다.
      * 스크롤 모드: 그리기 캔버스를 화면에서 떼어내 아래 앱을 100% 조작 가능하게 하고,
-     *             그때까지 그린 그림은 표시 전용 층(터치 통과)에 띄워 계속 보이게 한다.
+     * 그때까지 그린 그림은 표시 전용 층(터치 통과)에 띄워 계속 보이게 한다.
      */
     private fun setDrawMode(enabled: Boolean) {
         isDrawMode = enabled
@@ -253,6 +254,9 @@ class OverlayService : Service() {
         val bmp = drawingView.exportMerged()  // 그림이 없으면 null
         val iv = displayView ?: ImageView(this).also { displayView = it }
         iv.setImageBitmap(bmp)
+        
+        // [수정된 부분 2] 스크롤 모드 시에도 투명도를 0.8로 설정하여 시스템이 터치를 차단하지 못하게 합니다.
+        iv.alpha = 0.8f 
 
         if (displayParams == null) {
             displayParams = WindowManager.LayoutParams(
