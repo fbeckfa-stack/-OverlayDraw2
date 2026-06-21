@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_dark"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="28dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="오버레이 드로우"
+            android:textColor="@color/paper"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:fontFamily="serif"
+            android:layout_marginTop="16dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="화면 위에 떠 있는 투명 캔버스에 손가락으로 바로 그립니다. 다른 앱을 보면서도 그릴 수 있어요."
+            android:textColor="#99F6F1E7"
+            android:textSize="14sp"
+            android:layout_marginTop="8dp"
+            android:lineSpacingExtra="4dp" />
+
+        <!-- 권한 상태 -->
+        <TextView
+            android:id="@+id/permissionStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="① 다른 앱 위에 표시 권한이 필요해요"
+            android:textColor="@color/coral"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginTop="28dp" />
+
+        <Button
+            android:id="@+id/btnGrantPermission"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="10dp"
+            android:text="권한 설정으로 이동"
+            android:textColor="@color/bg_dark"
+            android:backgroundTint="@color/amber" />
+
+        <!-- 배경 투명도 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="② 아래 화면(배경) 투명도"
+            android:textColor="@color/paper"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginTop="30dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0%로 내리면 캔버스가 화면을 완전히 덮어 그림만 보이고, 100%면 아래 화면이 그대로 다 보여요."
+            android:textColor="#99F6F1E7"
+            android:textSize="12sp"
+            android:layout_marginTop="4dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="8dp">
+
+            <SeekBar
+                android:id="@+id/seekBackgroundOpacity"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="100"
+                android:progress="100"
+                android:progressTint="@color/line_green"
+                android:thumbTint="@color/paper" />
+
+            <TextView
+                android:id="@+id/txtOpacityValue"
+                android:layout_width="48dp"
+                android:layout_height="wrap_content"
+                android:text="100%"
+                android:textColor="@color/paper"
+                android:textSize="14sp"
+                android:gravity="end" />
+        </LinearLayout>
+
+        <!-- 펜 색상 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="③ 펜 색상"
+            android:textColor="@color/paper"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginTop="26dp" />
+
+        <LinearLayout
+            android:id="@+id/colorRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="10dp" />
+
+        <!-- 펜 굵기 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="④ 펜 굵기"
+            android:textColor="@color/paper"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginTop="26dp" />
+
+        <SeekBar
+            android:id="@+id/seekStrokeWidth"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="38"
+            android:progress="6"
+            android:progressTint="@color/coral"
+            android:thumbTint="@color/paper"
+            android:layout_marginTop="6dp" />
+
+        <!-- 시작/중지 -->
+        <Button
+            android:id="@+id/btnToggleOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="34dp"
+            android:text="화면 위에 그리기 시작"
+            android:textColor="@color/paper"
+            android:textStyle="bold"
+            android:backgroundTint="@color/line_green" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="시작하면 화면 위에 도구 바가 떠요. 거기서 색·굵기·지우개·날카로운 선·그림 불러오기·저장을 모두 조절할 수 있어요. 알림을 누르면 언제든 꺼집니다."
+            android:textColor="#80F6F1E7"
+            android:textSize="12sp"
+            android:layout_marginTop="14dp"
+            android:layout_marginBottom="20dp" />
+
+    </LinearLayout>
+</ScrollView>

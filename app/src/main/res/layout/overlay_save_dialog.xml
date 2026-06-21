@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="280dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/dialog_bg"
+    android:padding="20dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="어떻게 저장할까요?"
+        android:textColor="#F6F1E7"
+        android:textSize="17sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/saveInfo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="불러온 배경과 그린 선을 합쳐서 저장하거나, 그린 선만 따로(투명 배경) 저장할 수 있어요."
+        android:textColor="#99F6F1E7"
+        android:textSize="13sp"
+        android:lineSpacingExtra="3dp"
+        android:layout_marginTop="6dp" />
+
+    <Button
+        android:id="@+id/btnSaveMerged"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="합쳐서 저장 (배경 + 선)"
+        android:textColor="#0C1413"
+        android:textStyle="bold"
+        android:backgroundTint="#D98E3A"
+        android:layout_marginTop="16dp" />
+
+    <Button
+        android:id="@+id/btnSaveSeparate"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="선만 따로 저장 (투명 PNG)"
+        android:textColor="#F6F1E7"
+        android:textStyle="bold"
+        android:backgroundTint="#2B6E63"
+        android:layout_marginTop="8dp" />
+
+    <Button
+        android:id="@+id/btnSaveCancel"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:text="취소"
+        android:textColor="#99F6F1E7"
+        android:backgroundTint="#1C2B2A"
+        android:layout_marginTop="8dp" />
+
+</LinearLayout>
