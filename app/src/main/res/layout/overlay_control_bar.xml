@@ -226,15 +226,16 @@
             android:scaleType="center"
             android:contentDescription="저장" />
 
-        <!-- 닫기 -->
+        <!-- 닫기 (빨간 X - 앱 종료) -->
         <ImageButton
             android:id="@+id/btnClose"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:src="@drawable/ic_close"
-            android:background="@drawable/control_btn_bg"
+            android:background="@drawable/close_btn_bg"
             android:scaleType="center"
-            android:contentDescription="오버레이 닫기" />
+            android:contentDescription="앱 종료"
+            android:layout_marginStart="2dp" />
 
     </LinearLayout>
 </LinearLayout>

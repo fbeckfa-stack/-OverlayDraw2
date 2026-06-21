@@ -43,6 +43,11 @@ class OverlayService : Service() {
     private lateinit var dimView: View
     private lateinit var controlBar: LinearLayout
 
+    // 스크롤 모드일 때 그림을 보여주는 표시 전용 층 (터치를 항상 통과시킴)
+    private var displayView: ImageView? = null
+    private var displayParams: WindowManager.LayoutParams? = null
+    private var drawingAttached = true  // 그리기 캔버스가 현재 화면에 붙어있는지
+
     private var drawingParams: WindowManager.LayoutParams? = null
     private var controlParams: WindowManager.LayoutParams? = null
 
@@ -201,30 +206,71 @@ class OverlayService : Service() {
         drawingView.drawingEnabled = true
     }
 
-    /** 필기 모드 ON: 캔버스가 터치를 받음 / OFF(스크롤): 터치를 아래 앱으로 통과 */
+    /**
+     * 필기 모드: 그리기 캔버스를 화면에 올려 터치로 그릴 수 있게 한다.
+     * 스크롤 모드: 그리기 캔버스를 화면에서 떼어내 아래 앱을 100% 조작 가능하게 하고,
+     *             그때까지 그린 그림은 표시 전용 층(터치 통과)에 띄워 계속 보이게 한다.
+     */
     private fun setDrawMode(enabled: Boolean) {
         isDrawMode = enabled
-        drawingView.drawingEnabled = enabled
-        val params = drawingParams ?: return
-        params.flags = if (enabled) {
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+        if (enabled) {
+            // 필기 모드로 전환: 표시 전용 층을 떼고, 그리기 캔버스를 올린다.
+            hideDisplayLayer()
+            attachDrawingView()
         } else {
-            // 스크롤 모드: 캔버스가 터치를 가로채지 않고 아래 앱으로 모두 통과시킨다
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+            // 스크롤 모드로 전환: 현재 그림을 표시 층에 띄우고, 그리기 캔버스를 뗀다.
+            showDisplayLayer()
+            detachDrawingView()
         }
-        // 일부 기기는 updateViewLayout으로 FLAG_NOT_TOUCHABLE 변경을 즉시 반영하지 않으므로
-        // 뷰를 제거했다가 다시 추가해 플래그를 확실히 적용한다.
+        bringControlBarToFront()
+    }
+
+    private fun attachDrawingView() {
+        if (drawingAttached) return
+        val params = drawingParams ?: return
+        runCatching {
+            windowManager.addView(drawingView, params)
+            drawingAttached = true
+        }
+    }
+
+    private fun detachDrawingView() {
+        if (!drawingAttached) return
         runCatching {
             windowManager.removeViewImmediate(drawingView)
-            windowManager.addView(drawingView, params)
-        }.onFailure {
-            // 재추가에 실패하면 최소한 레이아웃 갱신이라도 시도
-            runCatching { windowManager.updateViewLayout(drawingView, params) }
+            drawingAttached = false
         }
-        // 캔버스를 다시 추가하면 컨트롤 바보다 아래로 내려갈 수 있으니,
-        // 컨트롤 바를 다시 맨 위로 올린다.
-        bringControlBarToFront()
+    }
+
+    /** 현재 그림(배경+선)을 비트맵으로 만들어 표시 전용 층에 띄운다. */
+    private fun showDisplayLayer() {
+        val bmp = drawingView.exportMerged()  // 그림이 없으면 null
+        val iv = displayView ?: ImageView(this).also { displayView = it }
+        iv.setImageBitmap(bmp)
+
+        if (displayParams == null) {
+            displayParams = WindowManager.LayoutParams(
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.MATCH_PARENT,
+                overlayType(),
+                // 터치를 무조건 아래로 통과시킴
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                PixelFormat.TRANSLUCENT
+            ).apply { gravity = Gravity.TOP or Gravity.START }
+        }
+        // 이미 붙어있지 않으면 추가
+        runCatching {
+            windowManager.removeViewImmediate(iv)
+        }
+        runCatching {
+            windowManager.addView(iv, displayParams)
+        }
+    }
+
+    private fun hideDisplayLayer() {
+        val iv = displayView ?: return
+        runCatching { windowManager.removeViewImmediate(iv) }
     }
 
     /** 컨트롤 바를 다른 오버레이보다 위에 다시 올린다(항상 누를 수 있도록). */
@@ -337,7 +383,7 @@ class OverlayService : Service() {
         btnClear.setOnClickListener { drawingView.clearAll() }
         btnImport.setOnClickListener { requestImagePick() }
         btnSave.setOnClickListener { showSaveDialog() }
-        btnClose.setOnClickListener { stopSelf() }
+        btnClose.setOnClickListener { shutdownEverything() }
 
         refreshToggleButtons()
         updateSizePreview()
@@ -543,10 +589,22 @@ class OverlayService : Service() {
         }
     }
 
+    /** 빨간 X(닫기)를 눌렀을 때: 모든 오버레이를 즉시 화면에서 없애고 서비스를 종료한다. */
+    private fun shutdownEverything() {
+        dismissSaveDialog()
+        runCatching { windowManager.removeViewImmediate(controlBar) }
+        runCatching { windowManager.removeViewImmediate(drawingView) }
+        displayView?.let { runCatching { windowManager.removeViewImmediate(it) } }
+        runCatching { windowManager.removeViewImmediate(dimView) }
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         dismissSaveDialog()
-        runCatching { windowManager.removeView(drawingView) }
+        if (drawingAttached) runCatching { windowManager.removeView(drawingView) }
+        displayView?.let { runCatching { windowManager.removeView(it) } }
         runCatching { windowManager.removeView(dimView) }
         runCatching { windowManager.removeView(controlBar) }
     }
